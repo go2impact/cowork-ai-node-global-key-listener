@@ -1,5 +1,6 @@
 /** Key server configuration that's Mac specific */
 export type IMacConfig = {
+    title?: string;
     /** A callback that's triggered with additional information from the keyhandler */
     onInfo?: {(data: string): void};
     /** A callback that's triggered with additional information from the keyhandler */
