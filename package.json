@@ -9,6 +9,7 @@
         "build/**/*"
     ],
     "scripts": {
+        "prepare": "npm run build",
         "watch": "tsc -w",
         "build": "tsc",
         "test": "node build/test.js",
