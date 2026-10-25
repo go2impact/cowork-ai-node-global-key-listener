@@ -10,8 +10,8 @@ const root = path.resolve(__dirname, "..");
 const assets = {
     win32: {
         file: "WinKeyServer.exe",
-        bytes: 2335291,
-        hash: "e58864cc22cd8ec17ae35dd810455d604aadab7c3f145b6c53b3c261855a4bb1",
+        bytes: 2350984,
+        hash: "51b5c13760909bbdd9b15be0d054389d9d47a487afbbf464b63e2f81a6ed9288",
     },
     darwin: {
         file: "MacKeyServer",
@@ -140,15 +140,30 @@ test("npm package never contains installed native binaries", () => {
     }
 });
 
-test("the current platform asset retains its original bytes and caches without network", async t => {
+test("the current platform asset matches its pinned bytes and caches without network", async t => {
     for (const platform of [process.platform]) {
         await t.test(platform, async t => {
             const dir = sandbox(t);
             const result = await install(dir, platform);
             assert.equal(result.code, 0, result.output);
-            assert.deepEqual(result.urls, [
-                `https://raw.githubusercontent.com/go2impact/cowork-ai-node-global-key-listener/df009c2fb9ef190fbd1b7f5ff879c972adf6b4bc/bin/${assets[platform].file}`,
-            ]);
+            if (platform === "win32") {
+                assert.equal(
+                    result.urls[0],
+                    "https://github.com/go2impact/cowork-ai-node-global-key-listener/releases/download/native-assets-0.7.13-alpha/WinKeyServer.exe"
+                );
+                assert(result.urls.length <= 4);
+                assert(
+                    result.urls.every(url =>
+                        ["github.com", "release-assets.githubusercontent.com"].includes(
+                            new URL(url).hostname
+                        )
+                    )
+                );
+            } else {
+                assert.deepEqual(result.urls, [
+                    `https://raw.githubusercontent.com/go2impact/cowork-ai-node-global-key-listener/df009c2fb9ef190fbd1b7f5ff879c972adf6b4bc/bin/${assets[platform].file}`,
+                ]);
+            }
             assertSelected(dir, platform);
             const cached = await install(dir, platform, "network");
             assert.equal(cached.code, 0, cached.output);
@@ -184,7 +199,7 @@ test("a bounded HTTPS redirect preserves the current platform asset digest", asy
     const dir = sandbox(t);
     const result = await install(dir, process.platform, "redirect-real");
     assert.equal(result.code, 0, result.output);
-    assert.equal(result.urls.length, 2);
+    assert(result.urls.length >= 2 && result.urls.length <= 4);
     assertSelected(dir, process.platform);
 });
 

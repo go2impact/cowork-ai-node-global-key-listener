@@ -7,8 +7,9 @@ const revision = "df009c2fb9ef190fbd1b7f5ff879c972adf6b4bc";
 const assets = {
     win32: {
         file: "WinKeyServer.exe",
-        bytes: 2335291,
-        sha256: "e58864cc22cd8ec17ae35dd810455d604aadab7c3f145b6c53b3c261855a4bb1",
+        bytes: 2350984,
+        sha256: "51b5c13760909bbdd9b15be0d054389d9d47a487afbbf464b63e2f81a6ed9288",
+        url: "https://github.com/go2impact/cowork-ai-node-global-key-listener/releases/download/native-assets-0.7.13-alpha/WinKeyServer.exe",
     },
     darwin: {
         file: "MacKeyServer",
@@ -49,7 +50,9 @@ function checkDirectory(directory) {
 }
 
 function download(asset) {
-    const url = `https://raw.githubusercontent.com/go2impact/cowork-ai-node-global-key-listener/${revision}/bin/${asset.file}`;
+    const url =
+        asset.url ||
+        `https://raw.githubusercontent.com/go2impact/cowork-ai-node-global-key-listener/${revision}/bin/${asset.file}`;
     const hosts = new Set([
         new URL(url).hostname,
         "release-assets.githubusercontent.com",
