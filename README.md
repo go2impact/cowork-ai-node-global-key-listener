@@ -53,7 +53,9 @@ source remains available; compiled research outputs are removed from the current
 Historical Git objects are retained.
 
 An installation without the selected verified helper requires HTTPS access to
-`raw.githubusercontent.com`. HTTP errors, redirects, a 60-second download deadline,
+`raw.githubusercontent.com`. Downloads allow at most three HTTPS redirects to the
+original host or GitHub's release-asset host, within one 60-second deadline. Credentials
+in redirect URLs, other hosts, and insecure redirects are rejected. HTTP errors,
 truncation and checksum disagreement fail installation. A correctly installed helper
 is reused without network access; there is no additional shared cache, mirror or
 runtime download. A clean offline install therefore needs the package manager's cached

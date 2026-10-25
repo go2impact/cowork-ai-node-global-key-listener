@@ -180,6 +180,41 @@ test("download failures never leave a usable or partial native file", async t =>
     }
 });
 
+test("a bounded HTTPS redirect preserves the current platform asset digest", async t => {
+    const dir = sandbox(t);
+    const result = await install(dir, process.platform, "redirect-real");
+    assert.equal(result.code, 0, result.output);
+    assert.equal(result.urls.length, 2);
+    assertSelected(dir, process.platform);
+});
+
+test("redirect boundaries fail closed without resetting the download deadline", async t => {
+    const failures = [
+        ["redirect-http", /redirect/i, 1],
+        ["redirect-credentials", /redirect/i, 1],
+        ["redirect-foreign", /redirect/i, 1],
+        ["redirect-malformed", /redirect/i, 1],
+        ["redirect-missing", /redirect/i, 1],
+        ["redirect-loop", /redirect limit/i, 4],
+        ["redirect-timeout", /exceeded 60000ms/i, 2],
+        ["redirect-late-timeout", /exceeded 60000ms/i, 1],
+        ["redirect-hash", /SHA-256 mismatch/i, 2],
+    ];
+    for (const [mode, reason, requests] of failures) {
+        await t.test(mode, async t => {
+            const dir = sandbox(t);
+            const result = await install(dir, "win32", mode);
+            assert.notEqual(result.code, 0, result.output);
+            assert.match(result.output, reason);
+            assert.equal(result.urls.length, requests);
+            assert(
+                !fs.existsSync(path.join(dir, "bin")) ||
+                    fs.readdirSync(path.join(dir, "bin")).length === 0
+            );
+        });
+    }
+});
+
 test("unsupported platform fails before requesting an asset", async t => {
     const dir = sandbox(t);
     const result = await install(dir, "freebsd");

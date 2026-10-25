@@ -50,9 +50,14 @@ function checkDirectory(directory) {
 
 function download(asset) {
     const url = `https://raw.githubusercontent.com/go2impact/cowork-ai-node-global-key-listener/${revision}/bin/${asset.file}`;
+    const hosts = new Set([
+        new URL(url).hostname,
+        "release-assets.githubusercontent.com",
+    ]);
     return new Promise((resolve, reject) => {
         let settled = false;
         let timer;
+        let activeRequest;
         const finish = (error, value) => {
             if (settled) return;
             settled = true;
@@ -60,40 +65,86 @@ function download(asset) {
             if (error) reject(error);
             else resolve(value);
         };
-        const request = https.get(url, response => {
-            response.on("error", error => finish(error));
-            if (response.statusCode !== 200) {
-                response.resume();
-                finish(new Error(`Asset download returned HTTP ${response.statusCode}`));
-                request.destroy();
-                return;
-            }
-            const chunks = [];
-            let bytes = 0;
-            response.on("data", chunk => {
-                bytes += chunk.length;
-                if (bytes > asset.bytes) {
-                    finish(new Error("Asset download exceeds expected length"));
+        const visit = (address, redirects) => {
+            if (settled) return;
+            let followed = false;
+            const request = https.get(address, response => {
+                if (settled) {
+                    response.destroy();
+                    return;
+                }
+                response.on("error", error => {
+                    if (!followed) finish(error);
+                });
+                if ([301, 302, 303, 307, 308].includes(response.statusCode)) {
+                    try {
+                        if (redirects >= 3)
+                            throw new Error("Asset redirect limit exceeded");
+                        if (!response.headers.location)
+                            throw new Error("Missing asset redirect location");
+                        const next = new URL(response.headers.location, address);
+                        if (
+                            next.protocol !== "https:" ||
+                            !hosts.has(next.hostname) ||
+                            next.username ||
+                            next.password ||
+                            (next.port && next.port !== "443")
+                        ) {
+                            throw new Error("Refusing unsafe asset redirect");
+                        }
+                        followed = true;
+                        response.destroy();
+                        request.destroy();
+                        visit(next.href, redirects + 1);
+                    } catch (error) {
+                        finish(new Error(`Invalid asset redirect: ${error.message}`));
+                        request.destroy();
+                    }
+                    return;
+                }
+                if (response.statusCode !== 200) {
+                    response.resume();
+                    finish(
+                        new Error(`Asset download returned HTTP ${response.statusCode}`)
+                    );
                     request.destroy();
-                } else chunks.push(chunk);
+                    return;
+                }
+                const chunks = [];
+                let bytes = 0;
+                response.on("data", chunk => {
+                    bytes += chunk.length;
+                    if (bytes > asset.bytes) {
+                        finish(new Error("Asset download exceeds expected length"));
+                        request.destroy();
+                    } else chunks.push(chunk);
+                });
+                response.on("end", () => {
+                    const data = Buffer.concat(chunks);
+                    if (bytes !== asset.bytes) {
+                        finish(new Error("Asset download has unexpected length"));
+                    } else if (
+                        crypto.createHash("sha256").update(data).digest("hex") !==
+                        asset.sha256
+                    ) {
+                        finish(new Error("Asset download SHA-256 mismatch"));
+                    } else finish(null, data);
+                });
             });
-            response.on("end", () => {
-                const data = Buffer.concat(chunks);
-                if (bytes !== asset.bytes) {
-                    finish(new Error("Asset download has unexpected length"));
-                } else if (
-                    crypto.createHash("sha256").update(data).digest("hex") !==
-                    asset.sha256
-                ) {
-                    finish(new Error("Asset download SHA-256 mismatch"));
-                } else finish(null, data);
+            activeRequest = request;
+            request.on("error", error => {
+                if (!followed) finish(error);
             });
-        });
-        request.on("error", error => finish(error));
+        };
         timer = setTimeout(() => {
             finish(new Error("Asset download exceeded 60000ms"));
-            request.destroy();
+            if (activeRequest) activeRequest.destroy();
         }, 60000);
+        try {
+            visit(url, 0);
+        } catch (error) {
+            finish(error);
+        }
     });
 }
 
