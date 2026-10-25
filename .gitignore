@@ -110,3 +110,12 @@ build/
 dist/
 
 eslintLog.tap
+
+# Native assets are installed for the current OS; source archives stay portable.
+/bin/*
+!/bin/.gitkeep
+/.research/mac/detectKeys
+/.research/mac/research/test0/main
+/.research/mac/research/test1/main
+/.research/windows/detectKeys.exe
+/.research/windows/research/test1/main.exe

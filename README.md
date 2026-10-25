@@ -37,6 +37,40 @@ Compatibility table:
 
 This keyboard listener was originally made for the productivity application, [LaunchMenu](http://launchmenu.github.io/).
 
+## Installing this fork
+
+This fork keeps generated executables out of its current source tree and npm package.
+The normal npm `install` lifecycle downloads only the current operating system's helper
+into the existing package-local `bin/` path. Windows installs `WinKeyServer.exe`, macOS
+installs `MacKeyServer`, and Linux installs `X11KeyServer`. The listener API and existing
+`serverPath` overrides do not change.
+
+The helpers retain their original bytes and architectures from commit
+[`df009c2fb9ef190fbd1b7f5ff879c972adf6b4bc`](https://github.com/go2impact/cowork-ai-node-global-key-listener/tree/df009c2fb9ef190fbd1b7f5ff879c972adf6b4bc/bin).
+The installer requests only that immutable raw file, requires its recorded byte length
+and SHA-256, and writes it atomically. It does not execute the helper. Original research
+source remains available; compiled research outputs are removed from the current tree.
+Historical Git objects are retained.
+
+An installation without the selected verified helper requires HTTPS access to
+`raw.githubusercontent.com`. HTTP errors, redirects, a 60-second download deadline,
+truncation and checksum disagreement fail installation. A correctly installed helper
+is reused without network access; there is no additional shared cache, mirror or
+runtime download. A clean offline install therefore needs the package manager's cached
+built dependency or fails. Disabling lifecycle scripts leaves the native helper absent;
+approve this package's build/install scripts in package managers that require it.
+
+Packing after installation still excludes all generated binaries, so a tarball packed
+on a Mac cannot deliver a Mac executable to Windows. npm also runs preparation for Git
+dependencies before packing; see [npm's lifecycle documentation](https://docs.npmjs.com/cli/v10/using-npm/scripts).
+No registry or release publication is needed to use an exact reviewed Git commit.
+
+Contributors can run `npm ci`, `npm run build`, and, with Node 22, `npm run test:install`.
+The installation tests download only the current platform's helper as data, verify
+its hash, exercise synthetic failure responses and inspect package contents. CI runs
+this on Windows, macOS and Linux. Tests never start a keyboard listener or require
+access to host keystrokes.
+
 ## Usage
 
 ```ts

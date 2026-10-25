@@ -1,0 +1,26 @@
+name: Install native helper
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22.22.0
+      - name: Check cold source before package scripts run
+        run: node --test --test-name-pattern="current source" test/install-platform-binary.test.cjs
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:install
