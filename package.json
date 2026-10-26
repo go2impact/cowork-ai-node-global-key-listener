@@ -5,14 +5,16 @@
     "types": "build/index.d.ts",
     "main": "build/index.js",
     "files": [
-        "bin/**/*",
-        "build/**/*"
+        "build/**/*",
+        "scripts/install-platform-binary.cjs"
     ],
     "scripts": {
+        "install": "node scripts/install-platform-binary.cjs",
         "prepare": "npm run build",
         "watch": "tsc -w",
         "build": "tsc",
         "test": "node build/test.js",
+        "test:install": "node --test test/install-platform-binary.test.cjs",
         "compile-win": ".\\scripts\\compile-win.bat",
         "compile-mac": "swiftc src/bin/MacKeyServer/main.swift -o bin/MacKeyServer",
         "compile-x11": "scripts/compile-x11.sh"
